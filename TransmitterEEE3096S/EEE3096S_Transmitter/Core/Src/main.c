@@ -2,7 +2,7 @@
 /**
 *******************************************************
 Info:		Mini-Project Transmitter based on Prac 3 code by Amaan Vally
-Author:		Amaan Vally, Brent Farina, Jordyn Nitch
+Author:		Amaan Vally, Brent Farina (FRNBRE005), Jordyn Nitch (NTCJOR001)
 *******************************************************
 
   ******************************************************************************
@@ -27,7 +27,6 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-char buffer[100];
 uint32_t ACTIVATED = 0;
 uint32_t DB_LAST_TICK = 0;
 
@@ -85,7 +84,7 @@ int main(void)
 		  //Middle 3 bits tell how many readings have been sent so far.
 		  uint16_t compare;
 
-		  for (size_t i = 15; i > 3; --i)
+		  for (size_t i = 15; i > 4; --i)
 		  {
 			  compare = message & 1 << i;
 			  changeLED(compare);
@@ -94,7 +93,7 @@ int main(void)
 			  HAL_Delay(DELAY);
 		  }
 
-		  for (size_t i = 2; i > -1; --i)
+		  for (size_t i = 3; i > 0; --i)
 		  {
 			  compare = count & 1 << i;
 			  	  changeLED(compare);

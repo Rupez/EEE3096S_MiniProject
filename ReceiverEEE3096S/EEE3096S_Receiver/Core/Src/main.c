@@ -1,48 +1,22 @@
 /* USER CODE BEGIN Header */
 /**
 *******************************************************
-Info:		STM32 ADCs, GPIO Interrupts and PWM with HAL
-Author:		Amaan Vally
+Info:		EEE3096S MiniProject Receiver based on prac 3 by Amaan Vally
+Author:		Amaan Vally, Brent Farina (FRNBRE005, Jordyn Nitch (NTCJOR001)
 *******************************************************
-In this practical you will learn to use the ADC on the STM32 using the HAL.
-Here, we will be measuring the voltage on a potentiometer and using its value
-to adjust the brightness of the on board LEDs. We set up an interrupt to switch the
-display between the blue and green LEDs.
 
-Code is also provided to send data from the STM32 to other devices using UART protocol
-by using HAL. You will need Putty or a Python script to read from the serial port on your PC.
-
-UART Connections are as follows: 5V->5V GND->GND RXD->PA2 TXD->PA3(unused).
-Open device manager and go to Ports. Plug in the USB connector with the STM powered on.
-Check the port number (COMx). Open up Putty and create a new Serial session on that COMx
-with baud rate of 9600.
   ******************************************************************************
   */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
+#define SLOW_MODE 1
+#define BITS_PSEC_SLOW 2
+#define BITS_PSEC_FAST 32
+#define ADC_LENGTH 12
 
-/* USER CODE END Includes */
-
-/* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
-
-/* USER CODE END PTD */
-
-/* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
-/* USER CODE END PD */
-
-/* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
-
-/* USER CODE END PM */
-
-/* Private variables ---------------------------------------------------------*/
- ADC_HandleTypeDef hadc;
+ADC_HandleTypeDef hadc;
 DMA_HandleTypeDef hdma_adc;
 
 TIM_HandleTypeDef htim3;
@@ -50,14 +24,15 @@ TIM_HandleTypeDef htim3;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
-/* USER CODE BEGIN PV */
-char buffer[10];
+uint32_t ACTIVATED = 0;
+uint32_t DB_LAST_TICK = 0;
 
-//TO DO:
-//TASK 1
-//Create global variables for debouncing and delay interval
-
-/* USER CODE END PV */
+//Set delay based on if in slow mode or not
+#if SLOW_MODE == 0
+	uint32_t DELAY = 1000/BITS_PSEC_FAST;
+#else
+	uint32_t DELAY = 1000/BITS_PSEC_SLOW;
+#endif
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -68,80 +43,97 @@ static void MX_ADC_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 void EXTI0_1_IRQHandler(void);
-uint32_t pollADC(void);
-uint32_t ADCtoCRR(uint32_t adc_val);
+void changeLED(uint16_t on);
+uint32_t getMSG(void);
 
-/* USER CODE END PFP */
-
-/* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
-
-/**
-  * @brief  The application entry point.
-  * @retval int
-  */
+//Entry point
 int main(void)
 {
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
-  /* MCU Configuration--------------------------------------------------------*/
-
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
-
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
 
   /* Configure the system clock */
   SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
-
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_USART2_UART_Init();
-  MX_ADC_Init();
+//  MX_DMA_Init();
+//  MX_USART2_UART_Init();
+//  MX_ADC_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
-  //TO DO:
-  //Create variables needed in while loop
 
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4); //Start the PWM on TIM3 Channel 4 (Green LED)
-  /* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
+  uint16_t full_msg;
+  uint32_t bit;
+  uint16_t expect_parity = 0;
+  uint16_t expect_count = 0;
+  uint16_t miss_count = 0;
+  uint16_t receive_count = 0;
+
   while (1)
   {
-	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_8); // Toggle blue LED
-	  //TO DO:
-	  //TASK 2
-	  //Test your pollADC function and display via UART
+	  if (ACTIVATED)
+	  {
+		  //Turn on LED to inform user STM is ready to receive
+		  changeLED(1);
 
-	  //TASK 3
-	  //Test your ADCtoCRR function. Display CRR value via UART
+		  if(getMSG())
+		  {
+			  HAL_Delay(DELAY);
+			  if (getMSG())
+			  {
+				  HAL_Delay(DELAY);
 
-	  //TASK 4
-	  //Complete rest of implementation
+				  for (size_t i = 0; i < 16; ++i)
+				  {
+					  bit = getMSG();
+					  full_msg << 1;
+					  full_msg |= bit;
+					  expect_parity ^= bit;
+					  HAL_Delay(DELAY);
+				  }
 
-	  HAL_Delay (500); // wait for 500 ms
+				  if (full_msg & 0x01 != expect_parity)
+				  {
+					  miss_count++;
+					  //Add code here to print dropped message
+					  continue;
+				  } else if ((full_msg >> 1) & 0x07 != expect_count)
+				  {
+					  miss_count += ((full_msg >> 1) & 0x07) - expect_count & 0x07;
+					  //Add code here to print number of misses detected
+					  continue;
+				  }
 
-    /* USER CODE END WHILE */
+				  ++receive_count;
+				  ++expect_count;
+				  //Add code to display messages
+			  }
+		  }
 
-    /* USER CODE BEGIN 3 */
+	  } else
+	  {
+		  //Turn off LED to inform user STM is not receiving
+		  changeLED(0);
+	  }
   }
-  /* USER CODE END 3 */
 }
 
+uint32_t getMSG(void)
+{
+	return (GPIOA->IDR & GPIO_PIN_7) >> (GPIO_PIN_7 / 2);
+}
+
+void changeLED(uint16_t on)
+{
+	if (on)
+		GPIOC->ODR |= GPIO_PIN_8;
+	else
+		GPIOC->ODR &= ~GPIO_PIN_8;
+}
 /**
   * @brief System Clock Configuration
   * @retval None
@@ -388,45 +380,35 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF1_I2C1;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  //Configure PA7 to receive input from transmitter
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREW_HIGH;
+  HAL_GPIO_INIT(GPIOA, &GPIO_InitStruct);
+
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
 
 }
 
-/* USER CODE BEGIN 4 */
+//Interrupt to activate listen with debounce
 void EXTI0_1_IRQHandler(void)
 {
-	//TO DO:
-	//TASK 1
-	//Switch delay frequency
+	//Get current tick
+	uint32_t current_tick = HAL_GetTick();
+
+	//If no significant amount of time has passed, skip.
+	if (current_tick - DB_LAST_TICK > 50)
+	{
+		ACTIVATED = !ACTIVATED;
+		DB_LAST_TICK = current_tick; //Record current tick for next debounce
+	}
 
 	HAL_GPIO_EXTI_IRQHandler(B1_Pin); // Clear interrupt flags
 }
 
-uint32_t pollADC(void){
-	//TO DO:
-	//TASK 2
-	// Complete the function body
-	return val;
-}
-
-uint32_t ADCtoCRR(uint32_t adc_val){
-	//TO DO:
-	//TASK 2
-	// Complete the function body
-	//HINT: The CRR value for 100% DC is 47999 (DC = CRR/ARR = CRR/47999)
-	//HINT: The ADC range is approx 0 - 4095
-	//HINT: Scale number from 0-4096 to 0 - 47999
-	return val;
-}
-
-/* USER CODE END 4 */
-
-/**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
