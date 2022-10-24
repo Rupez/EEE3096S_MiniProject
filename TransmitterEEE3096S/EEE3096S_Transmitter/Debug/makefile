@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version
+BUILD_ARTIFACT_NAME := EEE3096S_MiniProject_Transmitter
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.elf \
+EEE3096S_MiniProject_Transmitter.elf \
 
 MAP_FILES += \
-EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.map \
+EEE3096S_MiniProject_Transmitter.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.list \
+EEE3096S_MiniProject_Transmitter.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.elf secondary-outputs
+main-build: EEE3096S_MiniProject_Transmitter.elf secondary-outputs
 
 # Tool invocations
-EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.elf EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.map: $(OBJS) $(USER_OBJS) /home/rupez/Work/Uni2023/Mini-Project/TransmitterEEE3096S/EEE3096S_Transmitter/STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"/home/rupez/Work/Uni2023/Mini-Project/TransmitterEEE3096S/EEE3096S_Transmitter/STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+EEE3096S_MiniProject_Transmitter.elf EEE3096S_MiniProject_Transmitter.map: $(OBJS) $(USER_OBJS) /home/rupez/Work/Uni2023/Mini-Project/TransmitterEEE3096S/EEE3096S_Transmitter/STM32F051R8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "EEE3096S_MiniProject_Transmitter.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"/home/rupez/Work/Uni2023/Mini-Project/TransmitterEEE3096S/EEE3096S_Transmitter/STM32F051R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EEE3096S_MiniProject_Transmitter.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.list"
+EEE3096S_MiniProject_Transmitter.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "EEE3096S_MiniProject_Transmitter.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.elf EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.list EEE3096S_2022_Prac_3_ADCs_Interrupts_and_PWM_Student_Version.map default.size.stdout
+	-$(RM) EEE3096S_MiniProject_Transmitter.elf EEE3096S_MiniProject_Transmitter.list EEE3096S_MiniProject_Transmitter.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

@@ -50,6 +50,7 @@ uint32_t pollADC(void);
 uint32_t ADCtoCRR(uint32_t adc_val);
 void changeLED(uint16_t on);
 void incCount(uint16_t* message_ptr);
+char buffer[100];
 
 int main(void)
 {
@@ -59,8 +60,9 @@ int main(void)
   HAL_Init();
 
   MX_GPIO_Init();
-  //MX_DMA_Init();
-  //MX_USART2_UART_Init();
+  //Initialising UART stuff for debugging
+  MX_DMA_Init();
+  MX_USART2_UART_Init();
   MX_ADC_Init();
   MX_TIM3_Init();
 
@@ -68,8 +70,8 @@ int main(void)
 
   //To communicate message integrity with even parity
   uint16_t message;
-  uint16_t parity = 0;
   uint16_t count = 0;
+
   while (1)
   {
 	  if (ACTIVATED)
@@ -79,33 +81,35 @@ int main(void)
 		  HAL_Delay(2*DELAY);
 		  //Read from ADC
 		  message = pollADC() << 4;
+		  //Remove any anomalous bits in count and parity slot
+		  message &= 0xfff0;
+		  //Add count value in next 3 bits
+		  message |= (count << 1 & 0x000e);
+
+		  //Print
+		  sprintf(buffer, "Message reads %B \r\n", message);
+		  sprintf(buffer, "That gives ADC value %d Count %d and Parity %d", (message >> 4) & 0x1FFF, (message >> 1) & 0x7, message & 0x1);
+		  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
+
 		  //ADC value max is 4095 which needs 12 bits to represent.
 		  //16th bit is for parity. Starts off at 0.
 		  //Middle 3 bits tell how many readings have been sent so far.
 		  uint16_t compare;
 
-		  for (size_t i = 15; i > 4; --i)
+		  for (uint16_t i = 0x8000; i > 0x1; i = i >> 1)
 		  {
-			  compare = message & 1 << i;
+			  compare = message & i;
 			  changeLED(compare);
 			  if (compare)
-				  parity = !parity;
+				  //Flip parity bit while preserving others
+				  message &= ((message ^ 0x1) | 0xffff);
 			  HAL_Delay(DELAY);
 		  }
 
-		  for (size_t i = 3; i > 0; --i)
-		  {
-			  compare = count & 1 << i;
-			  	  changeLED(compare);
-			  if (compare)
-			  	  parity = !parity;
-			  HAL_Delay(DELAY);
-		  }
-
-		  changeLED(parity);
+		  changeLED(message & 0x1);
 		  HAL_Delay(DELAY);
 
-		  incCount(&count);
+		  incCount(&message);
 
 	  } else
 		  //Set high to communicate end of transmission
@@ -125,8 +129,13 @@ void changeLED(uint16_t on)
 void incCount(uint16_t* message_ptr)
 {
 	uint16_t msg = *message_ptr;
+
+	msg = msg >> 1;
 	++msg;
-	*message_ptr &= (msg & 0x07);
+	msg &= 0xE;
+
+	*message_ptr &= 0xFFF1;
+	*message_ptr |= msg;
 }
 
 /**
