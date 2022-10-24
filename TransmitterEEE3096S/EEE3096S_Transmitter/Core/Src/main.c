@@ -74,6 +74,8 @@ int main(void)
 
   while (1)
   {
+	  sprintf(buffer, "Transmitter is online. Press the button to start sending.\r\n");
+ 	  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
 	  if (ACTIVATED)
 	  {
 		  //Set low to indicate transmission has started
@@ -88,7 +90,8 @@ int main(void)
 
 		  //Print
 		  sprintf(buffer, "Message reads %B \r\n", message);
-		  sprintf(buffer, "That gives ADC value %d Count %d and Parity %d", (message >> 4) & 0x1FFF, (message >> 1) & 0x7, message & 0x1);
+		  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
+		  sprintf(buffer, "That gives ADC value %d Count %d and Parity %d\r\n", (message >> 4) & 0x1FFF, (message >> 1) & 0x7, message & 0x1);
 		  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
 
 		  //ADC value max is 4095 which needs 12 bits to represent.

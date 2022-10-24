@@ -26,6 +26,7 @@ DMA_HandleTypeDef hdma_usart2_tx;
 
 uint32_t ACTIVATED = 0;
 uint32_t DB_LAST_TICK = 0;
+char buffer[100];
 
 //Set delay based on if in slow mode or not
 #if SLOW_MODE == 0
@@ -57,8 +58,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-//  MX_DMA_Init();
-//  MX_USART2_UART_Init();
+  MX_DMA_Init();
+  MX_USART2_UART_Init();
 //  MX_ADC_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
@@ -75,6 +76,8 @@ int main(void)
 
   while (1)
   {
+	  sprintf(buffer, "Receiver is online. Press the button to start receiving input.\r\n");
+	  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
 	  if (ACTIVATED)
 	  {
 		  //Turn on LED to inform user STM is ready to receive
@@ -87,7 +90,7 @@ int main(void)
 			  {
 				  HAL_Delay(DELAY);
 
-				  for (size_t i = 0; i < 16; ++i)
+				  for (size_t i = 0; i < 15; ++i)
 				  {
 					  bit = getMSG();
 					  full_msg << 1;
@@ -95,6 +98,11 @@ int main(void)
 					  expect_parity ^= bit;
 					  HAL_Delay(DELAY);
 				  }
+
+				  bit = getMSG();
+				  full_msg << 1;
+				  full_msg |= bit;
+				  HAL_Delay(DELAY);
 
 				  if (full_msg & 0x01 != expect_parity)
 				  {
@@ -111,6 +119,10 @@ int main(void)
 				  ++receive_count;
 				  ++expect_count;
 				  //Add code to display messages
+				  sprintf(buffer, "Message received is %B\r\n", full_msg);
+				  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
+				  sprintf(buffer, "ADC value transmitted: %d\r\n", (full_msg >> 4) & 0x1FFF);
+				  HAL_UART_Transmit(&huart2, buffer, sizeof(buffer), 1000);
 			  }
 		  }
 
